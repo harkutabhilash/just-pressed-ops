@@ -1,11 +1,32 @@
-import { supabase } from './supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Lazy init — only creates client when first needed (not at import time)
+let supabaseClient = null
+
+function getClient() {
+  if (!supabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) {
+      throw new Error('Supabase env vars not configured')
+    }
+    supabaseClient = createClient(url, key)
+  }
+  return supabaseClient
+}
 
 /**
  * Login with username (phone number) and password
+ * Step 1: Check if username exists
+ * Step 2: Check if account is active
+ * Step 3: Verify password
+ * Step 4: Fetch permissions and build session
  */
 export async function login(username, password) {
   try {
-    // Step 1: Find user by username
+    const supabase = getClient()
+
+    // ─── STEP 1: Check if username exists ────────────────────
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('user_id, username, phone, email, full_name, employee_id, role, password_hash, is_active')
@@ -13,26 +34,31 @@ export async function login(username, password) {
       .single()
 
     if (userError || !user) {
-      return { success: false, error: 'Invalid username or password' }
+      return { success: false, error: 'This phone number is not registered. Please contact your admin.' }
     }
 
+    // ─── STEP 2: Check if account is active ──────────────────
     if (!user.is_active) {
-      return { success: false, error: 'Account is disabled. Contact admin.' }
+      return { success: false, error: 'This account has been disabled. Please contact your admin.' }
     }
 
-    // Step 2: Verify password
-    // password_hash stored via crypt() in Supabase — use pgcrypto verify
-    const { data: verified } = await supabase
+    // ─── STEP 3: Verify password ──────────────────────────────
+    const { data: verified, error: rpcError } = await supabase
       .rpc('verify_password', {
         p_password: password.trim(),
         p_hash: user.password_hash
       })
 
-    if (!verified) {
-      return { success: false, error: 'Invalid username or password' }
+    if (rpcError) {
+      console.error('Password verification RPC error:', rpcError)
+      return { success: false, error: 'Something went wrong. Please try again.' }
     }
 
-    // Step 3: Fetch user's module permissions
+    if (!verified) {
+      return { success: false, error: 'Incorrect password. Please try again.' }
+    }
+
+    // ─── STEP 4: Fetch permissions & build session ───────────
     const { data: permissions } = await supabase
       .from('user_permissions')
       .select(`
@@ -52,7 +78,6 @@ export async function login(username, password) {
       .eq('can_view', true)
       .order('modules(display_order)', { ascending: true })
 
-    // Step 4: Build session object
     const session = {
       user_id: user.user_id,
       username: user.username,
@@ -75,7 +100,7 @@ export async function login(username, password) {
         }))
     }
 
-    // Step 5: Save to localStorage
+    // Save session
     localStorage.setItem('jp_session', JSON.stringify(session))
 
     return { success: true, session }
@@ -90,12 +115,14 @@ export async function login(username, password) {
  * Logout - clear session
  */
 export function logout() {
-  localStorage.removeItem('jp_session')
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('jp_session')
+  }
 }
 
 /**
- * Get current session
- * Returns null if not logged in
+ * Get current session from localStorage
+ * Returns null if not logged in or running server-side
  */
 export function getSession() {
   if (typeof window === 'undefined') return null
