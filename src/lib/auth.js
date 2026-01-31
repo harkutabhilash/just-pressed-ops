@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Lazy init — only creates client when first needed (not at import time)
 let supabaseClient = null
 
 function getClient() {
@@ -16,11 +15,7 @@ function getClient() {
 }
 
 /**
- * Login with username (phone number) and password
- * Step 1: Check if username exists
- * Step 2: Check if account is active
- * Step 3: Verify password
- * Step 4: Fetch permissions and build session
+ * Login — validates credentials, saves only user_id + full_name to localStorage.
  */
 export async function login(username, password) {
   try {
@@ -29,7 +24,7 @@ export async function login(username, password) {
     // ─── STEP 1: Check if username exists ────────────────────
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('user_id, username, phone, email, full_name, employee_id, role, password_hash, is_active')
+      .select('user_id, full_name, is_active, password_hash')
       .eq('username', username.trim())
       .single()
 
@@ -58,49 +53,12 @@ export async function login(username, password) {
       return { success: false, error: 'Incorrect password. Please try again.' }
     }
 
-    // ─── STEP 4: Fetch permissions & build session ───────────
-    const { data: permissions } = await supabase
-      .from('user_permissions')
-      .select(`
-        module_id,
-        can_view,
-        can_write,
-        can_edit,
-        modules (
-          module_id,
-          module_key,
-          module_name,
-          icon,
-          display_order
-        )
-      `)
-      .eq('user_id', user.user_id)
-      .eq('can_view', true)
-      .order('modules(display_order)', { ascending: true })
-
+    // ─── STEP 4: Save minimal session ────────────────────────
     const session = {
       user_id: user.user_id,
-      username: user.username,
-      phone: user.phone,
-      email: user.email,
-      full_name: user.full_name,
-      employee_id: user.employee_id,
-      role: user.role,
-      modules: (permissions || [])
-        .filter(p => p.modules)
-        .map(p => ({
-          module_id: p.modules.module_id,
-          module_key: p.modules.module_key,
-          module_name: p.modules.module_name,
-          icon: p.modules.icon,
-          display_order: p.modules.display_order,
-          can_view: p.can_view,
-          can_write: p.can_write,
-          can_edit: p.can_edit
-        }))
+      full_name: user.full_name
     }
 
-    // Save session
     localStorage.setItem('jp_session', JSON.stringify(session))
 
     return { success: true, session }
@@ -112,7 +70,88 @@ export async function login(username, password) {
 }
 
 /**
- * Logout - clear session
+ * Fetch user's module list from DB.
+ * Called by dashboard on load.
+ */
+export async function fetchUserModules(userId) {
+  try {
+    const supabase = getClient()
+
+    const { data: permissions, error } = await supabase
+      .from('user_permissions')
+      .select(`
+        can_view,
+        can_write,
+        can_edit,
+        modules (
+          module_id,
+          module_key,
+          module_name,
+          display_order
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('can_view', true)
+      .order('modules(display_order)', { ascending: true })
+
+    if (error) {
+      console.error('Fetch modules error:', error)
+      return []
+    }
+
+    return (permissions || [])
+      .filter(p => p.modules)
+      .map(p => ({
+        module_key: p.modules.module_key,
+        module_name: p.modules.module_name,
+        display_order: p.modules.display_order,
+        can_write: p.can_write,
+        can_edit: p.can_edit
+      }))
+  } catch (error) {
+    console.error('Fetch modules error:', error)
+    return []
+  }
+}
+
+/**
+ * Check permission for a specific module.
+ * Called when user opens a module page.
+ */
+export async function checkModulePermission(userId, moduleKey) {
+  try {
+    const supabase = getClient()
+
+    const { data, error } = await supabase
+      .from('user_permissions')
+      .select(`
+        can_view,
+        can_write,
+        can_edit,
+        modules (module_key)
+      `)
+      .eq('user_id', userId)
+      .filter('modules.module_key', 'eq', moduleKey)
+      .single()
+
+    if (error || !data) {
+      return { allowed: false }
+    }
+
+    return {
+      allowed: data.can_view,
+      can_view: data.can_view,
+      can_write: data.can_write,
+      can_edit: data.can_edit
+    }
+  } catch (error) {
+    console.error('Check permission error:', error)
+    return { allowed: false }
+  }
+}
+
+/**
+ * Logout
  */
 export function logout() {
   if (typeof window !== 'undefined') {
@@ -121,8 +160,7 @@ export function logout() {
 }
 
 /**
- * Get current session from localStorage
- * Returns null if not logged in or running server-side
+ * Get session — returns { user_id, full_name } or null
  */
 export function getSession() {
   if (typeof window === 'undefined') return null
