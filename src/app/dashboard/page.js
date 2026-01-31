@@ -95,11 +95,22 @@ const cardColors = [
   { border: 'border-teal-200', icon: 'bg-teal-100 text-teal-700', hover: 'hover:border-teal-400' },
 ]
 
+// Skeleton card — same size as real card so layout doesn't shift when data arrives
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl border-2 border-gray-100 bg-white p-4 sm:p-5 animate-pulse">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl" />
+      <div className="mt-3 h-3 bg-gray-200 rounded-full w-3/4" />
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [session, setSession] = useState(null)
   const [modules, setModules] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [modulesLoading, setModulesLoading] = useState(true)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -109,12 +120,13 @@ export default function DashboardPage() {
         return
       }
       setSession(s)
+      setAuthChecked(true)
 
-      // Fetch modules fresh from DB
+      // Fetch modules in background — greeting already visible
       const { fetchUserModules } = await import('@/lib/auth')
       const mods = await fetchUserModules(s.user_id)
       setModules(mods)
-      setLoading(false)
+      setModulesLoading(false)
     }
     init()
   }, [router])
@@ -124,15 +136,8 @@ export default function DashboardPage() {
     router.push('/login')
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
-  if (!session) return null
+  // Auth not checked yet — blank to avoid flash
+  if (!authChecked) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -147,7 +152,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 hidden sm:inline">{session.full_name}</span>
+            <span className="text-sm text-gray-600 hidden sm:inline">{session?.full_name}</span>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-gray-500 hover:text-red-600 transition-colors text-sm font-medium px-2 py-1.5 rounded-lg hover:bg-red-50"
@@ -163,15 +168,20 @@ export default function DashboardPage() {
 
       {/* Main */}
       <main className="max-w-6xl mx-auto px-4 py-6">
-        {/* Greeting — just name, nothing else */}
+        {/* Greeting — renders immediately, no wait */}
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Good morning, {session.full_name.split(' ')[0]} 👋
+          Good morning, {session?.full_name?.split(' ')[0]} 👋
         </h1>
 
-        {/* Module grid — clean cards, no permission badges */}
-        {modules.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {modules.map((mod, index) => {
+        {/* Module grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {modulesLoading ? (
+            // 6 skeleton cards while loading — paints layout immediately
+            Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))
+          ) : modules.length > 0 ? (
+            modules.map((mod, index) => {
               const color = cardColors[index % cardColors.length]
               return (
                 <button
@@ -192,17 +202,17 @@ export default function DashboardPage() {
                   </h3>
                 </button>
               )
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
-            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-            </svg>
-            <p className="text-gray-600 font-medium">No modules assigned</p>
-            <p className="text-gray-400 text-sm mt-1">Contact your admin to get access</p>
-          </div>
-        )}
+            })
+          ) : (
+            <div className="col-span-2 lg:col-span-3 text-center py-20 bg-white rounded-2xl border border-gray-200">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+              <p className="text-gray-600 font-medium">No modules assigned</p>
+              <p className="text-gray-400 text-sm mt-1">Contact your admin to get access</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )
