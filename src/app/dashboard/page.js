@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSession, logout } from '@/lib/auth'
 
-// Icon component map - maps module_key to an SVG icon
 function ModuleIcon({ moduleKey }) {
   const icons = {
     materials_incoming: (
@@ -13,7 +12,7 @@ function ModuleIcon({ moduleKey }) {
     ),
     production_tracking: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 21.316L16.5 22.5l-.394-1.184a2.25 2.25 0 00-1.423-1.423L13.5 19.5l1.184-.394a2.25 2.25 0 001.423-1.423l.394-1.184.394 1.184a2.25 2.25 0 001.423 1.423l1.184.394-1.184.394a2.25 2.25 0 00-1.423 1.423z" />
+        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
     ),
     packing: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -21,7 +20,7 @@ function ModuleIcon({ moduleKey }) {
     ),
     stock_view: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v.75m0 0h7.5A2.25 2.25 0 0120.25 9v.75m0 0v8.25A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-.75m0 0h-4.5A2.25 2.25 0 016 15.75V9A2.25 2.25 0 018.25 6.75H10.5m0-.75V3.75m-6.75 3v.75H3A2.25 2.25 0 00.75 9v1.5m22.5-1.5v1.5a2.25 2.25 0 01-2.25 2.25h-.75" />
+        d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v.75m0 0h7.5A2.25 2.25 0 0120.25 9v.75m0 0v8.25A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-.75m0 0h-4.5A2.25 2.25 0 016 15.75V9A2.25 2.25 0 018.25 6.75H10.5" />
     ),
     stock_movement: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -73,43 +72,51 @@ function ModuleIcon({ moduleKey }) {
     ),
     marketing: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M10.34 21.49A3 3 0 0012 22.5h1.372c.51 0 .999.195 1.358.557l.417.416c.87.87 2.28.87 3.15 0l.834-.833c.39-.39.921-.61 1.474-.61H21m-9 0V9m0 12.49A3 3 0 009.66 21l-1.372-1.372a1.875 1.875 0 00-1.327-.551H3m6 0v-3m0 3H9m3-3V9m0 0H9m3 0h.01M3 21h9" />
+        d="M10.34 21.49A3 3 0 0012 22.5h1.372c.51 0 .999.195 1.358.557l.417.416c.87.87 2.28.87 3.15 0l.834-.833c.39-.39.921-.61 1.474-.61H21m-9 0V9m0 12.49A3 3 0 019.66 21l-1.372-1.372a1.875 1.875 0 00-1.327-.551H3m6 0v-3m0 3H9m3-3V9m0 0H9m3 0h.01M3 21h9" />
     ),
   }
 
   return (
-    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {icons[moduleKey] || (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-          d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v.75m0 0h7.5A2.25 2.25 0 0120.25 9v.75m0 0v8.25A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-.75m0 0h-4.5A2.25 2.25 0 016 15.75V9A2.25 2.25 0 018.25 6.75H10.5m0-.75V3.75" />
+          d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v.75m0 0h7.5A2.25 2.25 0 0120.25 9v.75m0 0v8.25A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-.75m0 0h-4.5A2.25 2.25 0 016 15.75V9A2.25 2.25 0 018.25 6.75H10.5" />
       )}
     </svg>
   )
 }
 
-// Color palette for module cards (cycles through)
 const cardColors = [
-  { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'bg-emerald-100 text-emerald-700', hover: 'hover:border-emerald-400' },
-  { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'bg-amber-100 text-amber-700', hover: 'hover:border-amber-400' },
-  { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'bg-blue-100 text-blue-700', hover: 'hover:border-blue-400' },
-  { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'bg-purple-100 text-purple-700', hover: 'hover:border-purple-400' },
-  { bg: 'bg-rose-50', border: 'border-rose-200', icon: 'bg-rose-100 text-rose-700', hover: 'hover:border-rose-400' },
-  { bg: 'bg-teal-50', border: 'border-teal-200', icon: 'bg-teal-100 text-teal-700', hover: 'hover:border-teal-400' },
+  { border: 'border-emerald-200', icon: 'bg-emerald-100 text-emerald-700', hover: 'hover:border-emerald-400' },
+  { border: 'border-amber-200', icon: 'bg-amber-100 text-amber-700', hover: 'hover:border-amber-400' },
+  { border: 'border-blue-200', icon: 'bg-blue-100 text-blue-700', hover: 'hover:border-blue-400' },
+  { border: 'border-purple-200', icon: 'bg-purple-100 text-purple-700', hover: 'hover:border-purple-400' },
+  { border: 'border-rose-200', icon: 'bg-rose-100 text-rose-700', hover: 'hover:border-rose-400' },
+  { border: 'border-teal-200', icon: 'bg-teal-100 text-teal-700', hover: 'hover:border-teal-400' },
 ]
 
 export default function DashboardPage() {
   const router = useRouter()
   const [session, setSession] = useState(null)
+  const [modules, setModules] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const s = getSession()
-    if (!s) {
-      router.push('/login')
-      return
+    async function init() {
+      const s = getSession()
+      if (!s) {
+        router.push('/login')
+        return
+      }
+      setSession(s)
+
+      // Fetch modules fresh from DB
+      const { fetchUserModules } = await import('@/lib/auth')
+      const mods = await fetchUserModules(s.user_id)
+      setModules(mods)
+      setLoading(false)
     }
-    setSession(s)
-    setLoading(false)
+    init()
   }, [router])
 
   const handleLogout = () => {
@@ -129,10 +136,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top navbar */}
+      {/* Navbar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Left: brand */}
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center">
               <img src="/icon.svg" alt="" className="w-6 h-6" />
@@ -140,12 +146,8 @@ export default function DashboardPage() {
             <span className="font-semibold text-gray-900 text-sm">Just Pressed</span>
           </div>
 
-          {/* Right: user info + logout */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-gray-900">{session.full_name}</p>
-              <p className="text-xs text-gray-500">{session.role}</p>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 hidden sm:inline">{session.full_name}</span>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-gray-500 hover:text-red-600 transition-colors text-sm font-medium px-2 py-1.5 rounded-lg hover:bg-red-50"
@@ -160,57 +162,34 @@ export default function DashboardPage() {
       </header>
 
       {/* Main */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>
-            Good morning, {session.full_name.split(' ')[0]} 👋
-          </h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            {session.role} &middot; {session.modules.length} module{session.modules.length !== 1 ? 's' : ''} available
-          </p>
-        </div>
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        {/* Greeting — just name, nothing else */}
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">
+          Good morning, {session.full_name.split(' ')[0]} 👋
+        </h1>
 
-        {/* Module grid */}
-        {session.modules.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {session.modules.map((mod, index) => {
+        {/* Module grid — clean cards, no permission badges */}
+        {modules.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {modules.map((mod, index) => {
               const color = cardColors[index % cardColors.length]
               return (
                 <button
                   key={mod.module_key}
                   onClick={() => router.push(`/${mod.module_key.replace(/_/g, '-')}`)}
-                  className={`group relative text-left rounded-2xl border-2 ${color.border} ${color.hover} bg-white p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5`}
+                  className={`group text-left rounded-2xl border-2 ${color.border} ${color.hover} bg-white p-4 sm:p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5`}
                 >
-                  <div className="flex items-start justify-between">
-                    {/* Icon */}
-                    <div className={`w-12 h-12 ${color.icon} rounded-xl flex items-center justify-center`}>
+                  <div className="flex items-center justify-between">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 ${color.icon} rounded-xl flex items-center justify-center`}>
                       <ModuleIcon moduleKey={mod.module_key} />
                     </div>
-
-                    {/* Arrow */}
-                    <svg className="w-5 h-5 text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
                   </div>
-
-                  {/* Title */}
-                  <h3 className="mt-4 text-sm font-semibold text-gray-900 group-hover:text-emerald-700 transition-colors">
+                  <h3 className="mt-3 text-xs sm:text-sm font-semibold text-gray-900 group-hover:text-emerald-700 transition-colors leading-tight">
                     {mod.module_name}
                   </h3>
-
-                  {/* Permission badges */}
-                  <div className="flex gap-1.5 mt-2 flex-wrap">
-                    {mod.can_view && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">View</span>
-                    )}
-                    {mod.can_write && (
-                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Create</span>
-                    )}
-                    {mod.can_edit && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Edit</span>
-                    )}
-                  </div>
                 </button>
               )
             })}
