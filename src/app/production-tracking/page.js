@@ -273,25 +273,21 @@ export default function ProductionTrackingPage() {
     // Running extraction batches
     const { data: batches } = await db
       .from('production_batches')
-      .select(`
-        batch_id as id,
-        batch_id,
-        machine_id,
-        raw_material_id,
-        seed_type as seed_name,
-        seed_input_kg as input_qty,
-        unit,
-        start_time_ist,
-        batch_status
-      `)
+      .select('batch_id, batch_id as batch_id, machine_id, raw_material_id, seed_type, seed_input_kg, unit, start_time_ist, batch_status')
       .eq('batch_status', 'in_progress')
       .eq('is_deleted', false)
       .order('start_epoch', { ascending: false })
 
-    // Enrich with machine code
+    // Enrich with machine code + remap column names
     const enrichedBatches = (batches || []).map(b => {
       const m = (machineData || []).find(m => m.machine_id === b.machine_id)
-      return { ...b, machine_code: m?.machine_code || '—' }
+      return {
+        ...b,
+        id: b.batch_id,
+        seed_name: b.seed_type,
+        input_qty: b.seed_input_kg,
+        machine_code: m?.machine_code || '—'
+      }
     })
     setRunningBatches(enrichedBatches)
 
@@ -466,11 +462,13 @@ export default function ProductionTrackingPage() {
   if (!session) return null
 
   // ── Action button definitions
+  const idleMachineCount = pressMachines.length - runningBatches.length
+
   const actions = [
-    { key: 'start_extraction', label: 'Start Extraction', icon: 'M12 4.5v15m7.5-7.5H4.5', color: 'emerald', count: null },
-    { key: 'stop_extraction', label: 'Stop Extraction', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'red', count: runningBatches.length },
-    { key: 'start_filtering', label: 'Start Filtering', icon: 'M3.75 4.5h16.5M3.75 12h16.5m-16.5 7.5h16.5', color: 'blue', count: null },
-    { key: 'stop_filtering', label: 'Stop Filtering', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'amber', count: runningFilters.length },
+    { key: 'start_extraction', label: 'Start Extraction', icon: 'M12 4.5v15m7.5-7.5H4.5', color: 'emerald', count: idleMachineCount, countLabel: 'idle' },
+    { key: 'stop_extraction', label: 'Stop Extraction', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'red', count: runningBatches.length, countLabel: 'running' },
+    { key: 'start_filtering', label: 'Start Filtering', icon: 'M3.75 4.5h16.5M3.75 12h16.5m-16.5 7.5h16.5', color: 'blue', count: null, countLabel: null },
+    { key: 'stop_filtering', label: 'Stop Filtering', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'amber', count: runningFilters.length, countLabel: 'running' },
   ]
 
   const colorMap = {
@@ -523,7 +521,7 @@ export default function ProductionTrackingPage() {
                     </div>
                     <span className="text-sm font-semibold text-gray-800">{a.label}</span>
                     {a.count > 0 && (
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>{a.count}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${a.countLabel === 'idle' ? 'bg-gray-100 text-gray-600' : c.badge}`}>{a.count} {a.countLabel}</span>
                     )}
                   </div>
                   <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -538,7 +536,7 @@ export default function ProductionTrackingPage() {
                     {/* START EXTRACTION */}
                     {a.key === 'start_extraction' && (
                       <>
-                        <MachineSelector machines={pressMachines} selected={seState.machine} onSelect={m => setSeState(p => ({ ...p, machine: m }))} />
+                        <MachineSelector machines={pressMachines.filter(m => !runningBatches.find(b => b.machine_id === m.machine_id))} selected={seState.machine} onSelect={m => setSeState(p => ({ ...p, machine: m }))} />
                         <SeedSelector items={seeds} selected={seState.seed} onSelect={s => setSeState(p => ({ ...p, seed: s }))} label="Select Seed" />
                         <QtyInput value={seState.qty} onChange={v => setSeState(p => ({ ...p, qty: v }))} unit={seState.unit} onUnitChange={u => setSeState(p => ({ ...p, unit: u }))} label="Seed Input Quantity" />
                         <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
