@@ -273,7 +273,7 @@ export default function ProductionTrackingPage() {
     // Running extraction batches
     const { data: batches } = await db
       .from('production_batches')
-      .select('batch_id, batch_id as batch_id, machine_id, raw_material_id, seed_type, seed_input_kg, unit, start_time_ist, batch_status')
+      .select('batch_id, machine_id, raw_material_id, seed_type, seed_input_kg, unit, start_time_ist, batch_status')
       .eq('batch_status', 'in_progress')
       .eq('is_deleted', false)
       .order('start_epoch', { ascending: false })
@@ -294,12 +294,7 @@ export default function ProductionTrackingPage() {
     // Running filtering entries
     const { data: filters } = await db
       .from('filtering_entries')
-      .select(`
-        id,
-        raw_material_id,
-        input_qty_kg,
-        start_time_ist
-      `)
+      .select('id, raw_material_id, input_qty_kg, start_time_ist')
       .is('stop_time_ist', null)
       .eq('is_deleted', false)
       .order('start_epoch', { ascending: false })
@@ -602,6 +597,15 @@ export default function ProductionTrackingPage() {
                     {/* START FILTERING */}
                     {a.key === 'start_filtering' && (
                       <>
+                        {runningFilters.length > 0 ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                            <svg className="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m-9.303 3.376a12 12 0 1021.593 0M12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <p className="text-sm font-semibold text-amber-800">No filter machine is idle</p>
+                            <p className="text-xs text-amber-600 mt-1">Complete the existing {runningFilters[0]?.seed_name} filtration first before starting a new one.</p>
+                          </div>
+                        ) : (
                         <SeedSelector items={seeds} selected={sfState.seed} onSelect={s => setSfState(p => ({ ...p, seed: s }))} label="Select Oil Type" />
                         <QtyInput value={sfState.qty} onChange={v => setSfState(p => ({ ...p, qty: v }))} unit="kg" onUnitChange={() => {}} label="Unfiltered Oil Input (kg)" />
                         <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
@@ -621,6 +625,7 @@ export default function ProductionTrackingPage() {
                         >
                           Start Filtering
                         </button>
+                        )}
                       </>
                     )}
 
