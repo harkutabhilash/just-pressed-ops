@@ -51,7 +51,7 @@ export default function LoginPage() {
         {/* Brand header - tighter */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-900/30 mb-4">
-            <img src="/icon.svg" alt="Just Pressed" className="w-10 h-10" />
+            <img src="/JP Logo_New_2.png" alt="Just Pressed" className="w-10 h-10" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Just Pressed</h1>
           <p className="text-gray-500 text-xs mt-0.5">Operations Management</p>
