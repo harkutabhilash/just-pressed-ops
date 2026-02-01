@@ -316,7 +316,7 @@ export default function ProductionTrackingPage() {
     setSkus(skuData || [])
 
     // Products (finished oils — used as the oil-type selector in bottling)
-    const { data: productData } = await db.from('products').select('*').eq('is_active', true).order('product_name')
+    const { data: productData } = await db.from('products').select('*').eq('is_active', true).eq('product_category', 'Cold Pressed Oil').order('product_name')
     // Normalize to { id, name, image_url } so SeedSelector renders them correctly
     setProducts(
       (productData || []).map(p => ({
