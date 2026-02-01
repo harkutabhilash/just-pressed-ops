@@ -97,40 +97,26 @@ function SeedSelector({ items, selected, onSelect, label }) {
   )
 }
 
-// ─── Machine card selector ───────────────────────────────────────────────
+// ─── Machine dropdown selector ───────────────────────────────────────────
 function MachineSelector({ machines, selected, onSelect }) {
   return (
     <div>
       <label className="block text-sm font-semibold text-gray-700 mb-2">Select Machine</label>
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+      <select
+        value={selected?.machine_id || ''}
+        onChange={e => {
+          const m = machines.find(m => m.machine_id === e.target.value)
+          if (m) onSelect(m)
+        }}
+        className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-sm font-medium text-gray-700 outline-none cursor-pointer focus:border-emerald-400 transition-colors"
+      >
+        <option value="" disabled>Choose a machine...</option>
         {machines.map(m => (
-          <button
-            key={m.machine_id}
-            type="button"
-            onClick={() => onSelect(m)}
-            className={`relative rounded-xl border-2 p-2.5 text-center transition-all duration-150 ${
-              selected?.machine_id === m.machine_id
-                ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            {selected?.machine_id === m.machine_id && (
-              <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
-            <div className="w-9 h-9 mx-auto mb-1.5 bg-amber-100 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-              </svg>
-            </div>
-            <span className="text-xs font-bold text-gray-800 block">{m.machine_code}</span>
-            <span className="text-xs text-gray-500 block truncate">{m.machine_name}</span>
-          </button>
+          <option key={m.machine_id} value={m.machine_id}>
+            {m.machine_code} — {m.machine_name}
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   )
 }
@@ -520,228 +506,192 @@ export default function ProductionTrackingPage() {
 
       <main className="max-w-2xl mx-auto px-4 py-5">
 
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        {/* ── ACCORDION ─────────────────────────────────────────── */}
+        <div className="space-y-2">
           {actions.map(a => {
             const c = colorMap[a.color]
             const isActive = activeFlow === a.key
             return (
-              <button
-                key={a.key}
-                onClick={() => setActiveFlow(isActive ? null : a.key)}
-                className={`relative text-left rounded-2xl border-2 p-3.5 transition-all duration-200 ${isActive ? c.active + ' shadow-sm' : c.border + ' bg-white hover:shadow-sm'}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className={`w-10 h-10 ${c.icon} rounded-xl flex items-center justify-center`}>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={a.icon} />
-                    </svg>
+              <div key={a.key} className={`rounded-2xl border-2 overflow-hidden transition-all duration-200 ${isActive ? c.active : 'border-gray-200 bg-white'}`}>
+                {/* Accordion header — always visible */}
+                <button
+                  onClick={() => setActiveFlow(isActive ? null : a.key)}
+                  className="w-full flex items-center justify-between px-4 py-3.5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 ${c.icon} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={a.icon} />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800">{a.label}</span>
+                    {a.count > 0 && (
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>{a.count}</span>
+                    )}
                   </div>
-                  {a.count > 0 && (
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>{a.count}</span>
-                  )}
-                </div>
-                <p className="text-sm font-semibold text-gray-800 mt-2.5 leading-tight">{a.label}</p>
-              </button>
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+
+                {/* Accordion body — only for the active flow */}
+                {isActive && (
+                  <div className="px-4 pb-4 pt-1 space-y-4 border-t border-gray-100">
+
+                    {/* START EXTRACTION */}
+                    {a.key === 'start_extraction' && (
+                      <>
+                        <MachineSelector machines={pressMachines} selected={seState.machine} onSelect={m => setSeState(p => ({ ...p, machine: m }))} />
+                        <SeedSelector items={seeds} selected={seState.seed} onSelect={s => setSeState(p => ({ ...p, seed: s }))} label="Select Seed" />
+                        <QtyInput value={seState.qty} onChange={v => setSeState(p => ({ ...p, qty: v }))} unit={seState.unit} onUnitChange={u => setSeState(p => ({ ...p, unit: u }))} label="Seed Input Quantity" />
+                        <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                          <span className="text-xs text-gray-500 font-medium">Start Time (auto)</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatIST(new Date())}</span>
+                        </div>
+                        <button
+                          onClick={submitStartExtraction}
+                          disabled={!seState.machine || !seState.seed || !seState.qty}
+                          className="w-full py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-700 active:scale-95"
+                        >
+                          Start Extraction
+                        </button>
+                      </>
+                    )}
+
+                    {/* STOP EXTRACTION */}
+                    {a.key === 'stop_extraction' && (
+                      <>
+                        {runningBatches.length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-gray-400 text-sm">No machines currently running</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Running Machine</label>
+                              <div className="space-y-2">
+                                {runningBatches.map(b => (
+                                  <RunningCard key={b.id} item={b} selected={soState.batch} onSelect={m => setSoState({ batch: m, oil: '', cake: '', error: null })} type="extraction" />
+                                ))}
+                              </div>
+                            </div>
+                            {soState.batch && (
+                              <>
+                                <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                                  <span className="text-xs text-gray-500 font-medium">Input provided</span>
+                                  <span className="text-xs font-bold text-gray-700">{soState.batch.input_qty} {soState.batch.unit || 'kg'}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <OutputRow label="Oil Extracted" value={soState.oil} onChange={v => setSoState(p => ({ ...p, oil: v, error: null }))} error={soState.error && soState.oil} />
+                                  <OutputRow label="Cake Extracted" value={soState.cake} onChange={v => setSoState(p => ({ ...p, cake: v, error: null }))} error={soState.error && soState.cake} />
+                                </div>
+                                {soState.error && (
+                                  <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+                                    <p className="text-xs text-red-600 font-medium">{soState.error}</p>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={submitStopExtraction}
+                                  disabled={!soState.oil && !soState.cake}
+                                  className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 active:scale-95"
+                                >
+                                  Stop Extraction
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {/* START FILTERING */}
+                    {a.key === 'start_filtering' && (
+                      <>
+                        <SeedSelector items={seeds} selected={sfState.seed} onSelect={s => setSfState(p => ({ ...p, seed: s }))} label="Select Oil Type" />
+                        <QtyInput value={sfState.qty} onChange={v => setSfState(p => ({ ...p, qty: v }))} unit="kg" onUnitChange={() => {}} label="Unfiltered Oil Input (kg)" />
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                          </svg>
+                          <span className="text-xs text-blue-600 font-medium">Filtering Machine (single unit) — auto assigned</span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                          <span className="text-xs text-gray-500 font-medium">Start Time (auto)</span>
+                          <span className="text-xs font-semibold text-gray-700">{formatIST(new Date())}</span>
+                        </div>
+                        <button
+                          onClick={submitStartFiltering}
+                          disabled={!sfState.seed || !sfState.qty}
+                          className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 active:scale-95"
+                        >
+                          Start Filtering
+                        </button>
+                      </>
+                    )}
+
+                    {/* STOP FILTERING */}
+                    {a.key === 'stop_filtering' && (
+                      <>
+                        {runningFilters.length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-gray-400 text-sm">No filtering currently in progress</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Running Filter</label>
+                              <div className="space-y-2">
+                                {runningFilters.map(f => (
+                                  <RunningCard key={f.id} item={f} selected={sfStopState.entry} onSelect={m => setSfStopState({ entry: m, filteredOil: '', error: null })} type="filtering" />
+                                ))}
+                              </div>
+                            </div>
+                            {sfStopState.entry && (
+                              <>
+                                <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                                  <span className="text-xs text-gray-500 font-medium">Input provided</span>
+                                  <span className="text-xs font-bold text-gray-700">{sfStopState.entry.input_qty_kg} kg</span>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Filtered Oil Collected</label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      value={sfStopState.filteredOil}
+                                      onChange={e => setSfStopState(p => ({ ...p, filteredOil: e.target.value, error: null }))}
+                                      placeholder="0.00"
+                                      className={`flex-1 px-3 py-2.5 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${sfStopState.error ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-emerald-400'}`}
+                                    />
+                                    <span className="px-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600">kg</span>
+                                  </div>
+                                </div>
+                                {sfStopState.error && (
+                                  <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+                                    <p className="text-xs text-red-600 font-medium">{sfStopState.error}</p>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={submitStopFiltering}
+                                  disabled={!sfStopState.filteredOil}
+                                  className="w-full py-3 rounded-xl bg-amber-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-700 active:scale-95"
+                                >
+                                  Stop Filtering
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
-
-        {/* ── FORMS ──────────────────────────────────────────────── */}
-
-        {/* START EXTRACTION */}
-        {activeFlow === 'start_extraction' && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-5">
-            <h2 className="text-sm font-bold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5H4.5" />
-              </svg>
-              Start Extraction
-            </h2>
-
-            <MachineSelector machines={pressMachines} selected={seState.machine} onSelect={m => setSeState(p => ({ ...p, machine: m }))} />
-            <SeedSelector items={seeds} selected={seState.seed} onSelect={s => setSeState(p => ({ ...p, seed: s }))} label="Select Seed" />
-            <QtyInput value={seState.qty} onChange={v => setSeState(p => ({ ...p, qty: v }))} unit={seState.unit} onUnitChange={u => setSeState(p => ({ ...p, unit: u }))} label="Seed Input Quantity" />
-
-            {/* Start time display */}
-            <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
-              <span className="text-xs text-gray-500 font-medium">Start Time (auto)</span>
-              <span className="text-xs font-semibold text-gray-700">{formatIST(new Date())}</span>
-            </div>
-
-            <button
-              onClick={submitStartExtraction}
-              disabled={!seState.machine || !seState.seed || !seState.qty}
-              className="w-full py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-700 active:scale-95"
-            >
-              Start Extraction
-            </button>
-          </div>
-        )}
-
-        {/* STOP EXTRACTION */}
-        {activeFlow === 'stop_extraction' && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-5">
-            <h2 className="text-sm font-bold text-red-600 uppercase tracking-wide flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Stop Extraction
-            </h2>
-
-            {runningBatches.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-400 text-sm">No machines currently running</p>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Select Running Machine</label>
-                  <div className="space-y-2">
-                    {runningBatches.map(b => (
-                      <RunningCard key={b.id} item={b} selected={soState.batch} onSelect={m => setSoState({ batch: m, oil: '', cake: '', error: null })} type="extraction" />
-                    ))}
-                  </div>
-                </div>
-
-                {soState.batch && (
-                  <>
-                    {/* Show input reference */}
-                    <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
-                      <span className="text-xs text-gray-500 font-medium">Input provided</span>
-                      <span className="text-xs font-bold text-gray-700">{soState.batch.input_qty} {soState.batch.unit || 'kg'}</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <OutputRow label="Oil Extracted" value={soState.oil} onChange={v => setSoState(p => ({ ...p, oil: v, error: null }))} error={soState.error && soState.oil} />
-                      <OutputRow label="Cake Extracted" value={soState.cake} onChange={v => setSoState(p => ({ ...p, cake: v, error: null }))} error={soState.error && soState.cake} />
-                    </div>
-
-                    {soState.error && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
-                        <p className="text-xs text-red-600 font-medium">{soState.error}</p>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={submitStopExtraction}
-                      disabled={!soState.oil && !soState.cake}
-                      className="w-full py-3 rounded-xl bg-red-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 active:scale-95"
-                    >
-                      Stop Extraction
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* START FILTERING */}
-        {activeFlow === 'start_filtering' && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-5">
-            <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wide flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.75 4.5h16.5M3.75 12h16.5m-16.5 7.5h16.5" />
-              </svg>
-              Start Filtering
-            </h2>
-
-            <SeedSelector items={seeds} selected={sfState.seed} onSelect={s => setSfState(p => ({ ...p, seed: s }))} label="Select Oil Type" />
-
-            <QtyInput value={sfState.qty} onChange={v => setSfState(p => ({ ...p, qty: v }))} unit="kg" onUnitChange={() => {}} label="Unfiltered Oil Input (kg)" />
-
-            {/* Machine info — fixed, no selection */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-              </svg>
-              <span className="text-xs text-blue-600 font-medium">Filtering Machine (single unit) — auto assigned</span>
-            </div>
-
-            {/* Start time */}
-            <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
-              <span className="text-xs text-gray-500 font-medium">Start Time (auto)</span>
-              <span className="text-xs font-semibold text-gray-700">{formatIST(new Date())}</span>
-            </div>
-
-            <button
-              onClick={submitStartFiltering}
-              disabled={!sfState.seed || !sfState.qty}
-              className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 active:scale-95"
-            >
-              Start Filtering
-            </button>
-          </div>
-        )}
-
-        {/* STOP FILTERING */}
-        {activeFlow === 'stop_filtering' && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-5">
-            <h2 className="text-sm font-bold text-amber-600 uppercase tracking-wide flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Stop Filtering
-            </h2>
-
-            {runningFilters.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-400 text-sm">No filtering currently in progress</p>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Select Running Filter</label>
-                  <div className="space-y-2">
-                    {runningFilters.map(f => (
-                      <RunningCard key={f.id} item={f} selected={sfStopState.entry} onSelect={m => setSfStopState({ entry: m, filteredOil: '', error: null })} type="filtering" />
-                    ))}
-                  </div>
-                </div>
-
-                {sfStopState.entry && (
-                  <>
-                    <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
-                      <span className="text-xs text-gray-500 font-medium">Input provided</span>
-                      <span className="text-xs font-bold text-gray-700">{sfStopState.entry.input_qty_kg} kg</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Filtered Oil Collected</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={sfStopState.filteredOil}
-                          onChange={e => setSfStopState(p => ({ ...p, filteredOil: e.target.value, error: null }))}
-                          placeholder="0.00"
-                          className={`flex-1 px-3 py-2.5 rounded-xl border-2 text-sm font-medium outline-none transition-colors ${sfStopState.error ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-emerald-400'}`}
-                        />
-                        <span className="px-3 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600">kg</span>
-                      </div>
-                    </div>
-
-                    {sfStopState.error && (
-                      <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
-                        <p className="text-xs text-red-600 font-medium">{sfStopState.error}</p>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={submitStopFiltering}
-                      disabled={!sfStopState.filteredOil}
-                      className="w-full py-3 rounded-xl bg-amber-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-700 active:scale-95"
-                    >
-                      Stop Filtering
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        )}
       </main>
     </div>
   )
