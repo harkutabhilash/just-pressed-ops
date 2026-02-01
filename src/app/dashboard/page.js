@@ -146,7 +146,7 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center">
-              <img src="/icon.svg" alt="" className="w-6 h-6" />
+              <img src="/JP Logo_New_2.png" alt="" className="w-6 h-6" />
             </div>
             <span className="font-semibold text-gray-900 text-sm">Just Pressed</span>
           </div>
