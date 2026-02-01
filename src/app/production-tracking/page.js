@@ -438,7 +438,7 @@ export default function ProductionTrackingPage() {
       start_time: new Date().toISOString(),
       start_time_ist: time.formatted,
       start_epoch: time.epoch,
-      location_id: (await db.from('locations').select('id').limit(1)).data?.[0]?.id,
+      location_id: (await db.from('locations').select('location_id').limit(1)).data?.[0]?.location_id,
       created_by: session.user_id
     })
 
