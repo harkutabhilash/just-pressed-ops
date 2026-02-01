@@ -253,6 +253,7 @@ export default function ProductionTrackingPage() {
 
   // ── Bottling state
   const [skus, setSkus] = useState([]) // all active SKUs
+  const [products, setProducts] = useState([]) // finished-oil products (for bottling oil selector)
   const [bottlingState, setBottlingState] = useState({ seed: null, sku: null, qty: '' })
 
   // ── Auth check
@@ -313,6 +314,18 @@ export default function ProductionTrackingPage() {
     // SKUs (for bottling)
     const { data: skuData } = await db.from('skus').select('*').eq('is_active', true).order('product_id, size_value')
     setSkus(skuData || [])
+
+    // Products (finished oils — used as the oil-type selector in bottling)
+    const { data: productData } = await db.from('products').select('*').eq('is_active', true).order('product_name')
+    // Normalize to { id, name, image_url } so SeedSelector renders them correctly
+    setProducts(
+      (productData || []).map(p => ({
+        ...p,
+        id: p.product_id,
+        name: p.product_name,
+        image_url: p.product_image_url || p.image_url || null
+      }))
+    )
   }, [])
 
   useEffect(() => {
@@ -723,8 +736,7 @@ export default function ProductionTrackingPage() {
 
                     {/* BOTTLING */}
                     {a.key === 'bottling' && (() => {
-                      // SKUs for the currently selected oil (matched via product_id ↔ raw_material id mapping)
-                      // raw_materials.id maps 1-to-1 to products.product_id by convention (same UUID)
+                      // Filter SKUs to only those belonging to the selected product (oil type)
                       const sizesForOil = bottlingState.seed
                         ? skus.filter(s => s.product_id === bottlingState.seed.id)
                         : []
@@ -732,7 +744,7 @@ export default function ProductionTrackingPage() {
                       return (
                         <>
                           <SeedSelector
-                            items={seeds}
+                            items={products}
                             selected={bottlingState.seed}
                             onSelect={s => setBottlingState({ seed: s, sku: null, qty: '' })}
                             label="Select Oil Type"
