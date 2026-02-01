@@ -266,8 +266,8 @@ export default function ProductionTrackingPage() {
     const { data: seedData } = await db.from('raw_materials').select('*').eq('active', true).order('name')
     setSeeds(seedData || [])
 
-    // Press machines
-    const { data: machineData } = await db.from('machines').select('*').eq('machine_type', 'press').eq('active', true).order('machine_code')
+    // Press machines (Wooden Ghani + Expeller)
+    const { data: machineData } = await db.from('machines').select('*').eq('status', 'active').neq('machine_type', 'Filter').order('machine_code')
     setPressMachines(machineData || [])
 
     // Running extraction batches
