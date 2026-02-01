@@ -509,7 +509,10 @@ export default function ProductionTrackingPage() {
               <div key={a.key} className={`rounded-2xl border-2 overflow-hidden transition-all duration-200 ${isActive ? c.active : 'border-gray-200 bg-white'}`}>
                 {/* Accordion header — always visible */}
                 <button
-                  onClick={() => setActiveFlow(isActive ? null : a.key)}
+                  onClick={() => {
+                    setActiveFlow(isActive ? null : a.key)
+                    if (!isActive) loadData()
+                  }}
                   className="w-full flex items-center justify-between px-4 py-3.5"
                 >
                   <div className="flex items-center gap-3">
