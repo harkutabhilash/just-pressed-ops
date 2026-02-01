@@ -219,7 +219,7 @@ function RunningCard({ item, selected, onSelect, type }) {
           )}
         </div>
       </div>
-      <p className="text-xs text-gray-400 mt-1.5 ml-10.5">Started: {item.start_time_ist || item.start_time || '—'}</p>
+      <p className="text-xs text-gray-400 mt-1.5 ml-10.5">Started: {item.start_time_ist || '—'}</p>
     </button>
   )
 }
@@ -282,12 +282,11 @@ export default function ProductionTrackingPage() {
         seed_input_kg as input_qty,
         unit,
         start_time_ist,
-        start_time,
         batch_status
       `)
       .eq('batch_status', 'in_progress')
       .eq('is_deleted', false)
-      .order('start_time', { ascending: false })
+      .order('start_epoch', { ascending: false })
 
     // Enrich with machine code
     const enrichedBatches = (batches || []).map(b => {
@@ -303,13 +302,11 @@ export default function ProductionTrackingPage() {
         id,
         raw_material_id,
         input_qty_kg,
-        start_time_ist,
-        start_time,
-        stop_time
+        start_time_ist
       `)
       .is('stop_time_ist', null)
       .eq('is_deleted', false)
-      .order('start_time', { ascending: false })
+      .order('start_epoch', { ascending: false })
 
     // Enrich with seed name
     const enrichedFilters = (filters || []).map(f => {
@@ -359,7 +356,6 @@ export default function ProductionTrackingPage() {
       seed_input_kg: parseFloat(seState.qty),
       unit: seState.unit,
       batch_status: 'in_progress',
-      start_time: new Date().toISOString(),
       start_time_ist: time.formatted,
       start_epoch: time.epoch,
       location_id: seState.machine.location_id,
@@ -396,7 +392,6 @@ export default function ProductionTrackingPage() {
         oil_output_kg: oil,
         cake_output_kg: cake,
         batch_status: 'completed',
-        end_time: new Date().toISOString(),
         end_time_ist: time.formatted,
         end_epoch: time.epoch,
         updated_by: session.user_id,
@@ -422,7 +417,6 @@ export default function ProductionTrackingPage() {
     const { error } = await db.from('filtering_entries').insert({
       raw_material_id: sfState.seed.id,
       input_qty_kg: parseFloat(sfState.qty),
-      start_time: new Date().toISOString(),
       start_time_ist: time.formatted,
       start_epoch: time.epoch,
       location_id: (await db.from('locations').select('location_id').limit(1)).data?.[0]?.location_id,
@@ -455,7 +449,6 @@ export default function ProductionTrackingPage() {
     const { error } = await db.from('filtering_entries')
       .update({
         filtered_oil_kg: filteredOil,
-        stop_time: new Date().toISOString(),
         stop_time_ist: time.formatted,
         stop_epoch: time.epoch
       })
