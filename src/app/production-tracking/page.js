@@ -367,7 +367,8 @@ export default function ProductionTrackingPage() {
     })
 
     if (error) {
-      setToast({ type: 'error', message: 'Failed to start extraction. Please try again.' })
+      console.error('Start extraction error:', JSON.stringify(error))
+      setToast({ type: 'error', message: error.message || 'Failed to start extraction. Please try again.' })
       return
     }
     setToast({ type: 'success', message: `Extraction started on ${seState.machine.machine_code}` })
