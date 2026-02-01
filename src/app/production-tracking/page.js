@@ -596,37 +596,37 @@ export default function ProductionTrackingPage() {
 
                     {/* START FILTERING */}
                     {a.key === 'start_filtering' && (
-                      <>
-                        {runningFilters.length > 0 ? (
-                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                            <svg className="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m-9.303 3.376a12 12 0 1021.593 0M12 15.75h.007v.008H12v-.008z" />
-                            </svg>
-                            <p className="text-sm font-semibold text-amber-800">No filter machine is idle</p>
-                            <p className="text-xs text-amber-600 mt-1">Complete the existing {runningFilters[0]?.seed_name} filtration first before starting a new one.</p>
-                          </div>
-                        ) : (
-                        <SeedSelector items={seeds} selected={sfState.seed} onSelect={s => setSfState(p => ({ ...p, seed: s }))} label="Select Oil Type" />
-                        <QtyInput value={sfState.qty} onChange={v => setSfState(p => ({ ...p, qty: v }))} unit="kg" onUnitChange={() => {}} label="Unfiltered Oil Input (kg)" />
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-                          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                      runningFilters.length > 0 ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                          <svg className="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m-9.303 3.376a12 12 0 1021.593 0M12 15.75h.007v.008H12v-.008z" />
                           </svg>
-                          <span className="text-xs text-blue-600 font-medium">Filtering Machine (single unit) — auto assigned</span>
+                          <p className="text-sm font-semibold text-amber-800">No filter machine is idle</p>
+                          <p className="text-xs text-amber-600 mt-1">Complete the existing {runningFilters[0]?.seed_name} filtration first before starting a new one.</p>
                         </div>
-                        <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
-                          <span className="text-xs text-gray-500 font-medium">Start Time (auto)</span>
-                          <span className="text-xs font-semibold text-gray-700">{formatIST(new Date())}</span>
-                        </div>
-                        <button
-                          onClick={submitStartFiltering}
-                          disabled={!sfState.seed || !sfState.qty}
-                          className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 active:scale-95"
-                        >
-                          Start Filtering
-                        </button>
-                        )}
-                      </>
+                      ) : (
+                        <>
+                          <SeedSelector items={seeds} selected={sfState.seed} onSelect={s => setSfState(p => ({ ...p, seed: s }))} label="Select Oil Type" />
+                          <QtyInput value={sfState.qty} onChange={v => setSfState(p => ({ ...p, qty: v }))} unit="kg" onUnitChange={() => {}} label="Unfiltered Oil Input (kg)" />
+                          <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                            </svg>
+                            <span className="text-xs text-blue-600 font-medium">Filtering Machine (single unit) - auto assigned</span>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                            <span className="text-xs text-gray-500 font-medium">Start Time (auto)</span>
+                            <span className="text-xs font-semibold text-gray-700">{formatIST(new Date())}</span>
+                          </div>
+                          <button
+                            onClick={submitStartFiltering}
+                            disabled={!sfState.seed || !sfState.qty}
+                            className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 active:scale-95"
+                          >
+                            Start Filtering
+                          </button>
+                        </>
+                      )
                     )}
 
                     {/* STOP FILTERING */}
