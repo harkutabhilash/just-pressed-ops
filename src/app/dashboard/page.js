@@ -10,16 +10,21 @@ function getGreeting() {
   const now = new Date()
   const istHour = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24
 
-  if (istHour >= 4 && istHour < 12)  return { text: 'Good morning',   emoji: '🌅' }
-  if (istHour >= 12 && istHour < 16) return { text: 'Good afternoon', emoji: '☀️' }
-  if (istHour >= 16 && istHour < 24) return { text: 'Good evening',   emoji: '🌙' }
-  /* 0–4 */                           return { text: 'Good night',     emoji: '🌜' }
+  if (istHour >= 4 && istHour < 12)  return { text: 'Good morning',   emoji: '\u{1F305}' } // 🌅
+  if (istHour >= 12 && istHour < 16) return { text: 'Good afternoon', emoji: '\u2600\uFE0F' } // ☀️
+  if (istHour >= 16 && istHour < 24) return { text: 'Good evening',   emoji: '\u{1F319}' } // 🌙
+  /* 0–4 */                           return { text: 'Good night',     emoji: '\u{1F31C}' } // 🌜
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [greeting, setGreeting] = useState({ text: 'Good morning', emoji: '\u{1F305}' });
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
 
   useEffect(() => {
     // Check authentication
@@ -143,7 +148,7 @@ export default function DashboardPage() {
         {/* Welcome section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {getGreeting().text}, {profile.full_name.split(' ')[0]} {getGreeting().emoji}
+            {greeting.text}, {profile.full_name.split(' ')[0]} {greeting.emoji}
           </h2>
           <p className="text-gray-600">
             Choose a module to get started with your tasks.
