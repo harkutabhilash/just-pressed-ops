@@ -234,8 +234,9 @@ export default function ProductionTrackingPage() {
   // Master data
   const [seeds, setSeeds] = useState([])
   const [pressMachines, setPressMachines] = useState([])
+  const [filterMachines, setFilterMachines] = useState([])
 
-  // Running batches (for stop screens)
+  // Lazy-loaded stop-screen data (fetched only when accordion opens)
   const [runningBatches, setRunningBatches] = useState([])
   const [runningFilters, setRunningFilters] = useState([])
 
@@ -263,7 +264,7 @@ export default function ProductionTrackingPage() {
     setSession(s)
   }, [router])
 
-  // ── Load master data
+  // ── Load master data only (machines already carry their status)
   const loadData = useCallback(async () => {
     const db = sup()
 
@@ -271,45 +272,13 @@ export default function ProductionTrackingPage() {
     const { data: seedData } = await db.from('raw_materials').select('*').eq('active', true).order('name')
     setSeeds(seedData || [])
 
-    // Press machines (Wooden Ghani + Expeller)
+    // Press machines — includes running_status ('idle' | 'in_use')
     const { data: machineData } = await db.from('machines').select('*').eq('status', 'active').neq('machine_type', 'Filter').order('machine_code')
     setPressMachines(machineData || [])
 
-    // Running extraction batches
-    const { data: batches } = await db
-      .from('production_batches')
-      .select('batch_id, machine_id, raw_material_id, seed_type, seed_input_kg, unit, start_time_ist, batch_status')
-      .eq('batch_status', 'in_progress')
-      .eq('is_deleted', false)
-      .order('start_epoch', { ascending: false })
-
-    // Enrich with machine code + remap column names
-    const enrichedBatches = (batches || []).map(b => {
-      const m = (machineData || []).find(m => m.machine_id === b.machine_id)
-      return {
-        ...b,
-        id: b.batch_id,
-        seed_name: b.seed_type,
-        input_qty: b.seed_input_kg,
-        machine_code: m?.machine_code || '—'
-      }
-    })
-    setRunningBatches(enrichedBatches)
-
-    // Running filtering entries
-    const { data: filters } = await db
-      .from('filtering_entries')
-      .select('id, raw_material_id, input_qty_kg, start_time_ist')
-      .is('stop_time_ist', null)
-      .eq('is_deleted', false)
-      .order('start_epoch', { ascending: false })
-
-    // Enrich with seed name
-    const enrichedFilters = (filters || []).map(f => {
-      const s = (seedData || []).find(s => s.id === f.raw_material_id)
-      return { ...f, seed_name: s?.name || '—' }
-    })
-    setRunningFilters(enrichedFilters)
+    // Filter machine — single unit, used only for the badge count
+    const { data: filterMachineData } = await db.from('machines').select('*').eq('status', 'active').eq('machine_type', 'Filter')
+    setFilterMachines(filterMachineData || [])
 
     // SKUs (for bottling)
     const { data: skuData } = await db.from('skus').select('*').eq('is_active', true).order('product_id, size_value')
@@ -331,6 +300,48 @@ export default function ProductionTrackingPage() {
   useEffect(() => {
     if (session) loadData()
   }, [session, loadData])
+
+  // ── Lazy-fetch: running extraction batches (only when stop_extraction opens)
+  async function fetchRunningBatches() {
+    const db = sup()
+    const { data: batches } = await db
+      .from('production_batches')
+      .select('batch_id, machine_id, seed_type, seed_input_kg, unit, start_time_ist')
+      .eq('batch_status', 'in_progress')
+      .eq('is_deleted', false)
+      .order('start_epoch', { ascending: false })
+
+    setRunningBatches(
+      (batches || []).map(b => {
+        const m = pressMachines.find(m => m.machine_id === b.machine_id)
+        return {
+          ...b,
+          id: b.batch_id,
+          seed_name: b.seed_type,
+          input_qty: b.seed_input_kg,
+          machine_code: m?.machine_code || '—'
+        }
+      })
+    )
+  }
+
+  // ── Lazy-fetch: running filtering entries (only when stop_filtering opens)
+  async function fetchRunningFilters() {
+    const db = sup()
+    const { data: filters } = await db
+      .from('filtering_entries')
+      .select('id, raw_material_id, machine_id, input_qty_kg, start_time_ist')
+      .is('stop_time_ist', null)
+      .eq('is_deleted', false)
+      .order('start_epoch', { ascending: false })
+
+    setRunningFilters(
+      (filters || []).map(f => {
+        const s = seeds.find(s => s.id === f.raw_material_id)
+        return { ...f, seed_name: s?.name || '—' }
+      })
+    )
+  }
 
   // ── Reset form when switching flows
   useEffect(() => {
@@ -380,6 +391,10 @@ export default function ProductionTrackingPage() {
       setToast({ type: 'error', message: error.message || 'Failed to start extraction. Please try again.' })
       return
     }
+
+    // Mark machine as in_use
+    await db.from('machines').update({ running_status: 'in_use' }).eq('machine_id', seState.machine.machine_id)
+
     setToast({ type: 'success', message: `Extraction started on ${seState.machine.machine_code}` })
     setActiveFlow(null)
     loadData()
@@ -416,6 +431,10 @@ export default function ProductionTrackingPage() {
       setToast({ type: 'error', message: 'Failed to stop extraction.' })
       return
     }
+
+    // Mark machine as idle again
+    await db.from('machines').update({ running_status: 'idle' }).eq('machine_id', batch.machine_id)
+
     setToast({ type: 'success', message: `Extraction stopped on ${batch.machine_code}` })
     setActiveFlow(null)
     loadData()
@@ -426,9 +445,11 @@ export default function ProductionTrackingPage() {
     if (!sfState.seed || !sfState.qty) return
     const db = sup()
     const time = nowIST()
+    const filterMachine = filterMachines[0] // single filter unit
 
     const { error } = await db.from('filtering_entries').insert({
       raw_material_id: sfState.seed.id,
+      machine_id: filterMachine?.machine_id || null,
       input_qty_kg: parseFloat(sfState.qty),
       start_time_ist: time.formatted,
       start_epoch: time.epoch,
@@ -440,6 +461,12 @@ export default function ProductionTrackingPage() {
       setToast({ type: 'error', message: 'Failed to start filtering.' })
       return
     }
+
+    // Mark filter machine as in_use
+    if (filterMachine) {
+      await db.from('machines').update({ running_status: 'in_use' }).eq('machine_id', filterMachine.machine_id)
+    }
+
     setToast({ type: 'success', message: `Filtering started for ${sfState.seed.name} oil` })
     setActiveFlow(null)
     loadData()
@@ -471,6 +498,12 @@ export default function ProductionTrackingPage() {
       setToast({ type: 'error', message: 'Failed to stop filtering.' })
       return
     }
+
+    // Mark filter machine as idle again
+    if (entry.machine_id) {
+      await db.from('machines').update({ running_status: 'idle' }).eq('machine_id', entry.machine_id)
+    }
+
     setToast({ type: 'success', message: `Filtering stopped for ${entry.seed_name} oil` })
     setActiveFlow(null)
     loadData()
@@ -503,13 +536,14 @@ export default function ProductionTrackingPage() {
   if (!session) return null
 
   // ── Action button definitions
-  const idleMachineCount = pressMachines.length - runningBatches.length
+  const idleMachines = pressMachines.filter(m => m.running_status === 'idle')
+  const inUseMachines = pressMachines.filter(m => m.running_status === 'in_use')
 
   const actions = [
-    { key: 'start_extraction', label: 'Start Extraction', icon: 'M12 4.5v15m7.5-7.5H4.5', color: 'emerald', count: idleMachineCount, countLabel: 'idle' },
-    { key: 'stop_extraction', label: 'Stop Extraction', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'red', count: runningBatches.length, countLabel: 'running' },
+    { key: 'start_extraction', label: 'Start Extraction', icon: 'M12 4.5v15m7.5-7.5H4.5', color: 'emerald', count: idleMachines.length, countLabel: 'idle' },
+    { key: 'stop_extraction', label: 'Stop Extraction', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'red', count: inUseMachines.length, countLabel: 'running' },
     { key: 'start_filtering', label: 'Start Filtering', icon: 'M3.75 4.5h16.5M3.75 12h16.5m-16.5 7.5h16.5', color: 'blue', count: null, countLabel: null },
-    { key: 'stop_filtering', label: 'Stop Filtering', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'amber', count: runningFilters.length, countLabel: 'running' },
+    { key: 'stop_filtering', label: 'Stop Filtering', icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'amber', count: filterMachines.filter(m => m.running_status === 'in_use').length, countLabel: 'running' },
     { key: 'bottling', label: 'Bottling', icon: 'M9 3h6v2a2 2 0 012 2v1a1 1 0 011 1v11a2 2 0 01-2 2H8a2 2 0 01-2-2V9a1 1 0 011-1V7a2 2 0 012-2V3z', color: 'violet', count: null, countLabel: null },
   ]
 
@@ -551,8 +585,13 @@ export default function ProductionTrackingPage() {
                 {/* Accordion header — always visible */}
                 <button
                   onClick={() => {
-                    setActiveFlow(isActive ? null : a.key)
-                    if (!isActive) loadData()
+                    const next = isActive ? null : a.key
+                    setActiveFlow(next)
+                    if (next) {
+                      loadData()
+                      if (next === 'stop_extraction') fetchRunningBatches()
+                      if (next === 'stop_filtering') fetchRunningFilters()
+                    }
                   }}
                   className="w-full flex items-center justify-between px-4 py-3.5"
                 >
@@ -579,7 +618,7 @@ export default function ProductionTrackingPage() {
                     {/* START EXTRACTION */}
                     {a.key === 'start_extraction' && (
                       <>
-                        <MachineSelector machines={pressMachines.filter(m => !runningBatches.find(b => b.machine_id === m.machine_id))} selected={seState.machine} onSelect={m => setSeState(p => ({ ...p, machine: m }))} />
+                        <MachineSelector machines={idleMachines} selected={seState.machine} onSelect={m => setSeState(p => ({ ...p, machine: m }))} />
                         <SeedSelector items={seeds} selected={seState.seed} onSelect={s => setSeState(p => ({ ...p, seed: s }))} label="Select Seed" />
                         <QtyInput value={seState.qty} onChange={v => setSeState(p => ({ ...p, qty: v }))} unit={seState.unit} onUnitChange={u => setSeState(p => ({ ...p, unit: u }))} label="Seed Input Quantity" />
                         <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between">
@@ -643,14 +682,15 @@ export default function ProductionTrackingPage() {
                     )}
 
                     {/* START FILTERING */}
-                    {a.key === 'start_filtering' && (
-                      runningFilters.length > 0 ? (
+                    {a.key === 'start_filtering' && (() => {
+                      const filterBusy = filterMachines.some(m => m.running_status === 'in_use')
+                      return filterBusy ? (
                         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
                           <svg className="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m-9.303 3.376a12 12 0 1021.593 0M12 15.75h.007v.008H12v-.008z" />
                           </svg>
                           <p className="text-sm font-semibold text-amber-800">No filter machine is idle</p>
-                          <p className="text-xs text-amber-600 mt-1">Complete the existing {runningFilters[0]?.seed_name} filtration first before starting a new one.</p>
+                          <p className="text-xs text-amber-600 mt-1">Complete the current filtration first before starting a new one.</p>
                         </div>
                       ) : (
                         <>
@@ -675,7 +715,7 @@ export default function ProductionTrackingPage() {
                           </button>
                         </>
                       )
-                    )}
+                    })()}
 
                     {/* STOP FILTERING */}
                     {a.key === 'stop_filtering' && (
