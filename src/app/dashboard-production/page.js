@@ -52,6 +52,13 @@ function minCustomDate() {
   return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth()+1).padStart(2,'0')}-${String(ist.getUTCDate()).padStart(2,'0')}`
 }
 
+// ─── Readable date label from epoch (IST) ────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+function formatDateLabel(epochMs) {
+  const ist = new Date(epochMs + 5.5 * 60 * 60 * 1000)
+  return `${String(ist.getUTCDate()).padStart(2, '0')} ${MONTHS[ist.getUTCMonth()]}`
+}
+
 // ─── Number formatting ────────────────────────────────────────────────────
 function fmt(n) {
   if (n == null || isNaN(n)) return '0'
@@ -71,51 +78,63 @@ function DateRangeBar({ preset, onPreset, customFrom, customTo, onCustomFrom, on
   const today = maxCustomDate()
   const minDate = minCustomDate()
 
+  // Compute the resolved range for the label (presets only)
+  const resolvedRange = preset !== 'custom' ? getEpochRange(preset, customFrom, customTo) : null
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {PRESETS.map(p => (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {PRESETS.map(p => (
+          <button
+            key={p.key}
+            onClick={() => onPreset(p.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              preset === p.key
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-emerald-400'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
         <button
-          key={p.key}
-          onClick={() => onPreset(p.key)}
+          onClick={() => onPreset('custom')}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            preset === p.key
+            preset === 'custom'
               ? 'bg-emerald-600 text-white shadow-sm'
               : 'bg-white border border-gray-200 text-gray-600 hover:border-emerald-400'
           }`}
         >
-          {p.label}
+          Custom
         </button>
-      ))}
-      <button
-        onClick={() => onPreset('custom')}
-        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-          preset === 'custom'
-            ? 'bg-emerald-600 text-white shadow-sm'
-            : 'bg-white border border-gray-200 text-gray-600 hover:border-emerald-400'
-        }`}
-      >
-        Custom
-      </button>
-      {preset === 'custom' && (
-        <div className="flex items-center gap-1.5 ml-1">
-          <input
-            type="date"
-            value={customFrom}
-            min={minDate}
-            max={customTo || today}
-            onChange={e => onCustomFrom(e.target.value)}
-            className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 outline-none focus:border-emerald-400"
-          />
-          <span className="text-xs text-gray-400">→</span>
-          <input
-            type="date"
-            value={customTo}
-            min={customFrom || minDate}
-            max={today}
-            onChange={e => onCustomTo(e.target.value)}
-            className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 outline-none focus:border-emerald-400"
-          />
-        </div>
+        {preset === 'custom' && (
+          <div className="flex items-center gap-1.5 ml-1">
+            <input
+              type="date"
+              value={customFrom}
+              min={minDate}
+              max={customTo || today}
+              onChange={e => onCustomFrom(e.target.value)}
+              className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 outline-none focus:border-emerald-400"
+            />
+            <span className="text-xs text-gray-400">→</span>
+            <input
+              type="date"
+              value={customTo}
+              min={customFrom || minDate}
+              max={today}
+              onChange={e => onCustomTo(e.target.value)}
+              className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 outline-none focus:border-emerald-400"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Resolved date label — only for presets */}
+      {resolvedRange && (
+        <p className="text-xs text-gray-400">
+          {formatDateLabel(resolvedRange.fromEpoch)} &ndash; {formatDateLabel(resolvedRange.toEpoch)}
+        </p>
       )}
     </div>
   )
