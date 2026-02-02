@@ -453,10 +453,18 @@ export default function StockMovementPage() {
                                             return (
                                               <button
                                                 key={s.sku_id}
-                                                onClick={() => {
-                                                  updateItem(idx, 'sku', s)
-                                                  updateItem(idx, 'skuSearch', `${prod?.product_name || ''} · ${s.variant_name || s.sku_code}`)
-                                                  updateItem(idx, 'skuDropdownOpen', false)
+                                                onMouseDown={e => {
+                                                  e.preventDefault()
+                                                  e.stopPropagation()
+                                                  const prod = products.find(p => p.product_id === s.product_id)
+                                                  setItems(prev => prev.map((it, i) => 
+                                                    i === idx ? {
+                                                      ...it,
+                                                      sku: s,
+                                                      skuSearch: `${prod?.product_name || ''} · ${s.variant_name || s.sku_code}`,
+                                                      skuDropdownOpen: false
+                                                    } : it
+                                                  ))
                                                 }}
                                                 className="w-full text-left px-3 py-2 hover:bg-emerald-50 transition-colors border-b border-gray-100 last:border-0"
                                               >
