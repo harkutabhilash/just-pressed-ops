@@ -29,7 +29,7 @@ function formatIST(date) {
 }
 
 // ─── Reason options ───────────────────────────────────────────────────────
-const REASONS = ['Fresh Stock', 'Expired', 'Leakage', 'Bad Packing', 'Missing Label']
+const REASONS = ['Fresh Stock', 'Expired', 'Leakage', 'Bad Packing', 'Missing Label', 'Reprocess']
 
 // ─── Friendly code: derive from data ──────────────────────────────────────
 // Format: DDMMYY_FromCode_ToCode_SerialNumber
