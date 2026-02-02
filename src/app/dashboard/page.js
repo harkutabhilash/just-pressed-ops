@@ -7,23 +7,39 @@ import { getSession, logout } from '@/lib/auth';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState(null);
+  const [session, setSession] = useState(null);
+  const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check authentication
-    const session = getSession();
+    const sess = getSession();
     
-    console.log('Dashboard: session check', session);
+    console.log('Dashboard: session check', sess);
     
-    if (!session) {
+    if (!sess) {
       router.push('/login');
       return;
     }
 
-    console.log('Dashboard: profile data', session.profile);
-    setProfile(session.profile);
-    setLoading(false);
+    setSession(sess);
+    
+    // Fetch user modules from Supabase
+    async function fetchModules() {
+      try {
+        const response = await fetch(`/api/user-modules?user_id=${sess.user_id}`);
+        const data = await response.json();
+        console.log('Dashboard: modules fetched', data);
+        setModules(data.modules || []);
+      } catch (error) {
+        console.error('Dashboard: error fetching modules', error);
+        setModules([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchModules();
   }, [router]);
 
   const handleLogout = async () => {
@@ -46,20 +62,20 @@ export default function DashboardPage() {
     );
   }
 
-  if (!profile) {
+  if (!session) {
     return null;
   }
 
-  console.log('Dashboard: rendering with profile', profile);
-  console.log('Dashboard: profile.modules', profile.modules);
+  console.log('Dashboard: rendering with session', session);
+  console.log('Dashboard: modules', modules);
 
   // Split modules into live vs upcoming
   const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production']
-  const liveModules = profile.modules 
-    ? profile.modules.filter(m => liveKeys.includes(m.module_key)).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+  const liveModules = modules 
+    ? modules.filter(m => liveKeys.includes(m.module_key)).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
     : []
-  const upcomingModules = profile.modules
-    ? profile.modules.filter(m => !liveKeys.includes(m.module_key)).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+  const upcomingModules = modules
+    ? modules.filter(m => !liveKeys.includes(m.module_key)).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
     : []
 
   console.log('Dashboard: liveModules', liveModules);
@@ -131,8 +147,8 @@ export default function DashboardPage() {
             {/* User menu */}
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{profile.full_name}</p>
-                <p className="text-xs text-gray-600">{profile.role}</p>
+                <p className="text-sm font-medium text-gray-900">{session.full_name}</p>
+                <p className="text-xs text-gray-600">User</p>
               </div>
               <button
                 onClick={handleLogout}
@@ -150,7 +166,7 @@ export default function DashboardPage() {
         {/* Welcome section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {profile.full_name.split(' ')[0]}!
+            Welcome back, {session.full_name.split(' ')[0]}!
           </h2>
           <p className="text-gray-600">
             Choose a module to get started with your tasks.
