@@ -432,7 +432,10 @@ export default function StockMovementPage() {
                                     
                                     {/* Dropdown results */}
                                     {item.skuDropdownOpen && !item.sku && (
-                                      <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                                      <div 
+                                        className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg"
+                                        onMouseDown={e => e.stopPropagation()}
+                                      >
                                         {(() => {
                                           const search = (item.skuSearch || '').toLowerCase()
                                           const filtered = skus.filter(s => {
