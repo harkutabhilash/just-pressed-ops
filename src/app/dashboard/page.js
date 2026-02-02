@@ -14,11 +14,14 @@ export default function DashboardPage() {
     // Check authentication
     const session = getSession();
     
+    console.log('Dashboard: session check', session);
+    
     if (!session) {
       router.push('/login');
       return;
     }
 
+    console.log('Dashboard: profile data', session.profile);
     setProfile(session.profile);
     setLoading(false);
   }, [router]);
@@ -47,14 +50,20 @@ export default function DashboardPage() {
     return null;
   }
 
+  console.log('Dashboard: rendering with profile', profile);
+  console.log('Dashboard: profile.modules', profile.modules);
+
   // Split modules into live vs upcoming
   const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production']
   const liveModules = profile.modules 
-    ? profile.modules.filter(m => liveKeys.includes(m.module_key)).sort((a, b) => a.display_order - b.display_order)
+    ? profile.modules.filter(m => liveKeys.includes(m.module_key)).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
     : []
   const upcomingModules = profile.modules
-    ? profile.modules.filter(m => !liveKeys.includes(m.module_key)).sort((a, b) => a.display_order - b.display_order)
+    ? profile.modules.filter(m => !liveKeys.includes(m.module_key)).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
     : []
+
+  console.log('Dashboard: liveModules', liveModules);
+  console.log('Dashboard: upcomingModules', upcomingModules);
 
   // Module icons mapping
   const moduleIcons = {
@@ -100,8 +109,9 @@ export default function DashboardPage() {
     ),
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
+  try {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -246,6 +256,22 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error('Dashboard render error:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Dashboard</h1>
+          <p className="text-gray-600 mb-4">{error.message}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
