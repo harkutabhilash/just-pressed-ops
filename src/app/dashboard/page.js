@@ -47,6 +47,15 @@ export default function DashboardPage() {
     return null;
   }
 
+  // Split modules into live vs upcoming
+  const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production']
+  const liveModules = profile.modules 
+    ? profile.modules.filter(m => liveKeys.includes(m.module_key)).sort((a, b) => a.display_order - b.display_order)
+    : []
+  const upcomingModules = profile.modules
+    ? profile.modules.filter(m => !liveKeys.includes(m.module_key)).sort((a, b) => a.display_order - b.display_order)
+    : []
+
   // Module icons mapping
   const moduleIcons = {
     materials_incoming: (
@@ -145,115 +154,96 @@ export default function DashboardPage() {
           <div>
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Active Modules</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {profile.modules && profile.modules.length > 0 ? (
-                (() => {
-                  // Live module keys (have pages built)
-                  const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production']
-                  const liveModules = profile.modules
-                    .filter(m => liveKeys.includes(m.module_key))
-                    .sort((a, b) => a.display_order - b.display_order)
+              {liveModules.length > 0 ? (
+                liveModules.map((module) => (
+                  <button
+                    key={module.module_key}
+                    onClick={() => navigateToModule(module.module_key)}
+                    className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-900/10 transition-all duration-200 text-left group"
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Icon */}
+                      <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center text-emerald-700 group-hover:from-emerald-600 group-hover:to-emerald-700 group-hover:text-white transition-all">
+                        {moduleIcons[module.module_key] || (
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                          </svg>
+                        )}
+                      </div>
 
-                  return liveModules.length > 0 ? liveModules.map((module) => (
-                    <button
-                      key={module.module_key}
-                      onClick={() => navigateToModule(module.module_key)}
-                      className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-900/10 transition-all duration-200 text-left group"
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Icon */}
-                        <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center text-emerald-700 group-hover:from-emerald-600 group-hover:to-emerald-700 group-hover:text-white transition-all">
-                          {moduleIcons[module.module_key] || (
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors">
+                          {module.module_name}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                          {module.can_write && (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Create</span>
+                          )}
+                          {module.can_edit && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Edit</span>
+                          )}
+                          {module.can_view && !module.can_write && !module.can_edit && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">View Only</span>
                           )}
                         </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors">
-                            {module.module_name}
-                          </h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-                            {module.can_write && (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Create</span>
-                            )}
-                            {module.can_edit && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Edit</span>
-                            )}
-                            {module.can_view && !module.can_write && !module.can_edit && (
-                              <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">View Only</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Arrow */}
-                        <svg className="w-6 h-6 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
                       </div>
-                    </button>
-                  )) : (
-                    <div className="col-span-full text-center py-12">
-                      <p className="text-gray-600">No active modules assigned. Contact admin for access.</p>
+
+                      {/* Arrow */}
+                      <svg className="w-6 h-6 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
-                  )
-                })()
+                  </button>
+                ))
               ) : (
                 <div className="col-span-full text-center py-12">
-                  <p className="text-gray-600">No modules assigned. Contact admin for access.</p>
+                  <p className="text-gray-600">No active modules available yet.</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Upcoming modules */}
-          {profile.modules && profile.modules.length > 0 && (() => {
-            const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production']
-            const upcomingModules = profile.modules
-              .filter(m => !liveKeys.includes(m.module_key))
-              .sort((a, b) => a.display_order - b.display_order)
-
-            return upcomingModules.length > 0 ? (
-              <div>
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Coming Soon</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {upcomingModules.map((module) => (
-                    <div
-                      key={module.module_key}
-                      className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200 opacity-60 cursor-not-allowed text-left"
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Icon */}
-                        <div className="flex-shrink-0 w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
-                          {moduleIcons[module.module_key] || (
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-gray-600 mb-1">
-                            {module.module_name}
-                          </h3>
-                          <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                            Coming Soon
-                          </span>
-                        </div>
-
-                        {/* Lock icon */}
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
+          {upcomingModules.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Coming Soon</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {upcomingModules.map((module) => (
+                  <div
+                    key={module.module_key}
+                    className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200 opacity-60 cursor-not-allowed text-left"
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Icon */}
+                      <div className="flex-shrink-0 w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400">
+                        {moduleIcons[module.module_key] || (
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                          </svg>
+                        )}
                       </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-gray-600 mb-1">
+                          {module.module_name}
+                        </h3>
+                        <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                          Coming Soon
+                        </span>
+                      </div>
+
+                      {/* Lock icon */}
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ) : null
-          })()}
+            </div>
+          )}
         </div>
       </div>
     </div>
