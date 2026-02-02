@@ -85,7 +85,7 @@ export default function StockMovementPage() {
   // ── Send state
   const [fromLoc,    setFromLoc]    = useState(null)
   const [toLoc,      setToLoc]      = useState(null)
-  const [items,      setItems]      = useState([{ sku: null, qty: '', reason: 'Fresh Stock' }])
+  const [items,      setItems]      = useState([{ sku: null, qty: '', reason: 'Fresh Stock', skuSearch: '', skuDropdownOpen: false }])
   const [sendNotes,  setSendNotes]  = useState('')
 
   // ── Verify state
@@ -115,6 +115,18 @@ export default function StockMovementPage() {
   }, [])
 
   useEffect(() => { if (session) loadMasters() }, [session, loadMasters])
+
+  // ── Close SKU dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      // Close any open SKU dropdowns if clicking outside
+      setItems(prev => prev.map(item => 
+        item.skuDropdownOpen ? { ...item, skuDropdownOpen: false } : item
+      ))
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // ── Lazy: pending transfers (fetched only when verify panel opens)
   async function fetchPending() {
@@ -150,7 +162,7 @@ export default function StockMovementPage() {
   // ── Reset send form
   function resetSend() {
     setFromLoc(null); setToLoc(null)
-    setItems([{ sku: null, qty: '', reason: 'Fresh Stock' }])
+    setItems([{ sku: null, qty: '', reason: 'Fresh Stock', skuSearch: '', skuDropdownOpen: false }])
     setSendNotes('')
   }
 
@@ -166,7 +178,7 @@ export default function StockMovementPage() {
   function updateItem(idx, field, value) {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it))
   }
-  function addItem()       { setItems(prev => [...prev, { sku: null, qty: '', reason: 'Fresh Stock' }]) }
+  function addItem()       { setItems(prev => [...prev, { sku: null, qty: '', reason: 'Fresh Stock', skuSearch: '', skuDropdownOpen: false }]) }
   function removeItem(idx) { setItems(prev => prev.filter((_, i) => i !== idx)) }
 
   // ── SUBMIT: Send
@@ -387,21 +399,73 @@ export default function StockMovementPage() {
                                     )}
                                   </div>
 
-                                  {/* SKU — grouped by product */}
-                                  <select
-                                    value={item.sku?.sku_id || ''}
-                                    onChange={e => updateItem(idx, 'sku', skus.find(s => s.sku_id === e.target.value) || null)}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 outline-none cursor-pointer focus:border-emerald-400 transition-colors"
-                                  >
-                                    <option value="" disabled>Select SKU...</option>
-                                    {products.map(prod => (
-                                      <optgroup key={prod.product_id} label={prod.product_name}>
-                                        {skus.filter(s => s.product_id === prod.product_id).map(s => (
-                                          <option key={s.sku_id} value={s.sku_id}>{s.variant_name || s.sku_code} ({s.size_value} {s.size_unit})</option>
-                                        ))}
-                                      </optgroup>
-                                    ))}
-                                  </select>
+                                  {/* SKU — searchable dropdown */}
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={item.skuSearch || ''}
+                                      onChange={e => {
+                                        const search = e.target.value
+                                        updateItem(idx, 'skuSearch', search)
+                                        updateItem(idx, 'skuDropdownOpen', true)
+                                      }}
+                                      onFocus={() => updateItem(idx, 'skuDropdownOpen', true)}
+                                      placeholder="Search SKU..."
+                                      className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 outline-none focus:border-emerald-400 transition-colors"
+                                    />
+                                    {item.sku && (
+                                      <div className="absolute right-2 top-2 flex items-center gap-1">
+                                        <span className="text-xs text-gray-400">{item.sku.size_value} {item.sku.size_unit}</span>
+                                        <button
+                                          onClick={() => {
+                                            updateItem(idx, 'sku', null)
+                                            updateItem(idx, 'skuSearch', '')
+                                          }}
+                                          className="text-gray-400 hover:text-red-500"
+                                        >
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Dropdown results */}
+                                    {item.skuDropdownOpen && !item.sku && (
+                                      <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                                        {(() => {
+                                          const search = (item.skuSearch || '').toLowerCase()
+                                          const filtered = skus.filter(s => {
+                                            const prod = products.find(p => p.product_id === s.product_id)
+                                            const label = `${prod?.product_name || ''} ${s.variant_name || s.sku_code || ''} ${s.size_value} ${s.size_unit}`.toLowerCase()
+                                            return label.includes(search)
+                                          })
+                                          
+                                          if (filtered.length === 0) {
+                                            return <div className="px-3 py-2 text-xs text-gray-400">No SKUs found</div>
+                                          }
+                                          
+                                          return filtered.slice(0, 50).map(s => {
+                                            const prod = products.find(p => p.product_id === s.product_id)
+                                            return (
+                                              <button
+                                                key={s.sku_id}
+                                                onClick={() => {
+                                                  updateItem(idx, 'sku', s)
+                                                  updateItem(idx, 'skuSearch', `${prod?.product_name || ''} · ${s.variant_name || s.sku_code}`)
+                                                  updateItem(idx, 'skuDropdownOpen', false)
+                                                }}
+                                                className="w-full text-left px-3 py-2 hover:bg-emerald-50 transition-colors border-b border-gray-100 last:border-0"
+                                              >
+                                                <p className="text-xs font-semibold text-gray-800">{prod?.product_name || '—'}</p>
+                                                <p className="text-xs text-gray-500">{s.variant_name || s.sku_code} · {s.size_value} {s.size_unit}</p>
+                                              </button>
+                                            )
+                                          })
+                                        })()}
+                                      </div>
+                                    )}
+                                  </div>
 
                                   {/* Qty + Reason in one row */}
                                   <div className="flex gap-2">
