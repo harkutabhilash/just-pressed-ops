@@ -140,7 +140,7 @@ export default function DashboardPage() {
   if (!authChecked) return null
 
   // Live module keys (have pages built)
-  const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production']
+  const liveKeys = ['production_tracking', 'stock_movement', 'dashboard_production','dispatch']
   const liveModules = modules.filter(m => liveKeys.includes(m.module_key))
   const upcomingModules = modules.filter(m => !liveKeys.includes(m.module_key))
 
