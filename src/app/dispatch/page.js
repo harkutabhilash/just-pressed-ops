@@ -122,8 +122,8 @@ export default function DispatchPage() {
 
   // ── SUBMIT: Create Dispatch
   async function submitDispatch() {
-    if (!fromLoc || !shippedTo.trim()) {
-      setToast({ type: 'error', message: 'Please select location and enter shipped to' })
+    if (!fromLoc) {
+      setToast({ type: 'error', message: 'Please select a location' })
       return
     }
 
@@ -139,7 +139,7 @@ export default function DispatchPage() {
     // 1. Insert header
     const { data: hdr, error: hErr } = await db.from('dispatches').insert({
       from_location_id:   fromLoc.location_id,
-      shipped_to:         shippedTo.trim(),
+      shipped_to:         shippedTo.trim() || null,
       dispatch_date:      new Date().toISOString().split('T')[0],
       dispatched_at_ist:  time.formatted,
       dispatched_at_epoch: time.epoch,
@@ -168,7 +168,7 @@ export default function DispatchPage() {
       return
     }
 
-    setToast({ type: 'success', message: `Dispatch created: ${fromLoc.location_name} → ${shippedTo}` })
+    setToast({ type: 'success', message: `Dispatch created from ${fromLoc.location_name}${shippedTo ? ` → ${shippedTo}` : ''}` })
     resetForm()
   }
 
@@ -222,7 +222,7 @@ export default function DispatchPage() {
             />
           </div>
 
-          {/* Direction indicator */}
+          {/* Direction indicator - only if shipped_to is provided */}
           {fromLoc && shippedTo && (
             <div className="bg-gray-50 rounded-xl px-3 py-2 flex items-center justify-center gap-2">
               <span className="text-xs font-semibold text-gray-600">{fromLoc.location_name}</span>
@@ -233,8 +233,8 @@ export default function DispatchPage() {
             </div>
           )}
 
-          {/* SKU rows */}
-          {fromLoc && shippedTo && (
+          {/* SKU rows - show once location is selected */}
+          {fromLoc && (
             <>
               <div className="space-y-3">
                 {items.map((item, idx) => (
