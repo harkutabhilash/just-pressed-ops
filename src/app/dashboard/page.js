@@ -4,6 +4,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSession, logout } from '@/lib/auth'
 
+export default function DashboardPage() {
+  // ADD THIS LINE
+  useEffect(() => {
+    console.log('🔍 Cloudinary Config:', {
+      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      preset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+    })
+  }, [])
+
 function ModuleIcon({ moduleKey }) {
   const icons = {
     materials_incoming: (
