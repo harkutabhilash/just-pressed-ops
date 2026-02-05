@@ -112,13 +112,6 @@ export default function DashboardPage() {
   const [modulesLoading, setModulesLoading] = useState(true)
   const [authChecked, setAuthChecked] = useState(false)
 
-   useEffect(() => {
-    console.log('🔍 Cloudinary Config:', {
-      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-      preset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
-    })
-  }, [])
-
   useEffect(() => {
     async function init() {
       const s = getSession()
