@@ -233,13 +233,14 @@ export default function ReturnsPage() {
       received_location_id: location.location_id,
       order_id:             orderId.trim() || null,
       awb_number:           awbNumber.trim() || null,
-      received_date:        new Date().toISOString().split('T')[0],
+      return_date:          new Date().toISOString().split('T')[0], // Use existing column
       received_at_ist:      time.formatted,
       received_at_epoch:    time.epoch,
       received_by:          session.user_id,
       remarks:              remarks || null,
       photos:               JSON.stringify(photos),
       videos:               JSON.stringify(videos),
+      created_by:           session.user_id, // For existing column
     }).select()
 
     if (hErr || !hdr?.[0]) {
