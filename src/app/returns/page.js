@@ -233,6 +233,7 @@ export default function ReturnsPage() {
       received_location_id: location.location_id,
       order_id:             orderId.trim() || null,
       awb_number:           awbNumber.trim() || null,
+      quality_status:       'Pending', // Or map from conditions: OK/Damaged/etc
       return_date:          new Date().toISOString().split('T')[0], // Use existing column
       received_at_ist:      time.formatted,
       received_at_epoch:    time.epoch,
