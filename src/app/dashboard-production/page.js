@@ -38,11 +38,26 @@ function getEpochRange(preset, customFrom, customTo) {
   return { fromEpoch, toEpoch }
 }
 
-function maxCustomDate() {
+function todayIST() {
   // today in YYYY-MM-DD (IST)
   const now = new Date()
   const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000)
   return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth()+1).padStart(2,'0')}-${String(ist.getUTCDate()).padStart(2,'0')}`
+}
+
+function maxCustomDate() { return todayIST() }
+
+function getDateRange(preset, customFrom, customTo) {
+  if (preset === 'custom' && customFrom && customTo) {
+    return { fromDate: customFrom, toDate: customTo }
+  }
+  const p = PRESETS.find(p => p.key === preset) || PRESETS[3]
+  const toDate = todayIST()
+  // subtract (days-1) from today — Date.UTC handles month/year rollover
+  const ist = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000)
+  const from = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate() - (p.days - 1)))
+  const fromDate = `${from.getUTCFullYear()}-${String(from.getUTCMonth()+1).padStart(2,'0')}-${String(from.getUTCDate()).padStart(2,'0')}`
+  return { fromDate, toDate }
 }
 
 function minCustomDate() {
@@ -308,15 +323,16 @@ export default function DashboardProductionPage() {
     setLoading(true)
     const db = sup()
     const { fromEpoch, toEpoch } = getEpochRange(preset, customFrom, customTo)
+    const { fromDate, toDate }   = getDateRange(preset, customFrom, customTo)
 
     const [exRes, fiRes, boRes] = await Promise.all([
-      // Extraction: completed batches in range
+      // Extraction: completed batches in range (filtered on production_date)
       db.from('production_batches')
-        .select('batch_id, seed_type, seed_input_kg, oil_output_kg, machine_id, created_by, start_epoch')
+        .select('batch_id, seed_type, seed_input_kg, oil_output_kg, machine_id, created_by, production_date')
         .eq('batch_status', 'completed')
         .eq('is_deleted', false)
-        .gte('start_epoch', fromEpoch)
-        .lte('start_epoch', toEpoch),
+        .gte('production_date', fromDate)
+        .lte('production_date', toDate),
 
       // Filtration: completed filtering (stop_epoch NOT null) in range
       db.from('filtering_entries')
