@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { getSession } from '@/lib/auth'
@@ -65,6 +65,97 @@ function Toast({ toast, onClose }) {
   )
 }
 
+// ─── Barcode Scanner Modal ─────────────────────────────────────────────────
+function ScannerModal({ isOpen, onClose, onResult, label }) {
+  const videoRef    = useRef(null)
+  const readerRef   = useRef(null)
+  const onResultRef = useRef(onResult)
+  const [error,   setError]   = useState('')
+  const [scanning, setScanning] = useState(false)
+
+  useEffect(() => { onResultRef.current = onResult }, [onResult])
+
+  useEffect(() => {
+    if (!isOpen) return
+    let stopped = false
+    setError('')
+    setScanning(false)
+
+    async function init() {
+      try {
+        const { BrowserCodeReader } = await import('@zxing/library')
+        if (stopped) return
+
+        const reader = new BrowserCodeReader()
+        readerRef.current = reader
+        setScanning(true)
+
+        // undefined deviceId → ZXing defaults to facingMode: environment (rear camera)
+        reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
+          if (stopped) return
+          if (result) {
+            const text = result.getText().trim()
+            if (text) {
+              onResultRef.current(text)
+              reader.reset()
+              readerRef.current = null
+            }
+          }
+        }).catch(e => {
+          if (!stopped) setError(e.name === 'NotAllowedError' ? 'Camera permission denied' : 'Cannot open camera')
+        })
+      } catch (e) {
+        if (!stopped) setError('Failed to load scanner')
+      }
+    }
+
+    init()
+    return () => {
+      stopped = true
+      if (readerRef.current) { readerRef.current.reset(); readerRef.current = null }
+    }
+  }, [isOpen])
+
+  if (!isOpen) return null
+
+  return (
+    <>
+      <style>{`@keyframes scanSlide{0%,100%{top:0}50%{top:calc(100% - 2px)}}.zxing-scan-line{animation:scanSlide 2.5s ease-in-out infinite;position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,#4ade80 50%,transparent 100%);box-shadow:0 0 6px 2px rgba(74,222,128,0.5)}`}</style>
+      <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <button onClick={onClose} className="text-white text-lg leading-none px-2 py-1">✕</button>
+          <span className="text-white text-sm font-semibold">{label || 'Scan Barcode'}</span>
+          <div className="w-10" />
+        </div>
+
+        {/* Camera view */}
+        <div className="flex-1 relative overflow-hidden">
+          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+          {scanning && (
+            <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
+              <div className="relative" style={{ width: '80%', height: '30%' }}>
+                {/* Corner brackets */}
+                <div className="absolute top-0 left-0 w-7 h-7" style={{ borderTop: '2px solid white', borderLeft: '2px solid white' }} />
+                <div className="absolute top-0 right-0 w-7 h-7" style={{ borderTop: '2px solid white', borderRight: '2px solid white' }} />
+                <div className="absolute bottom-0 left-0 w-7 h-7" style={{ borderBottom: '2px solid white', borderLeft: '2px solid white' }} />
+                <div className="absolute bottom-0 right-0 w-7 h-7" style={{ borderBottom: '2px solid white', borderRight: '2px solid white' }} />
+                {/* Scan line */}
+                <div className="zxing-scan-line" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="px-4 py-3 text-center" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <p className={`text-xs ${error ? 'text-red-400' : 'text-gray-400'}`}>{error || 'Place barcode within the frame'}</p>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ──────────────────────────────────────────────────────────────────────────
@@ -88,6 +179,18 @@ export default function ReturnsPage() {
   const [photos,      setPhotos]      = useState([])
   const [videos,      setVideos]      = useState([])
   const [uploading,   setUploading]   = useState(false)
+
+  // ── Scanner
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [scanTarget,  setScanTarget]  = useState(null) // 'orderId' | 'awb'
+
+  function openScanner(target) { setScanTarget(target); setScannerOpen(true) }
+  function handleScanResult(value) {
+    if (scanTarget === 'orderId') setOrderId(value)
+    else if (scanTarget === 'awb') setAwbNumber(value)
+    setScannerOpen(false)
+    setScanTarget(null)
+  }
 
   // ── Auth
   useEffect(() => {
@@ -278,6 +381,12 @@ export default function ReturnsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toast toast={toast} onClose={() => setToast(null)} />
+      <ScannerModal
+        isOpen={scannerOpen}
+        onClose={() => { setScannerOpen(false); setScanTarget(null) }}
+        onResult={handleScanResult}
+        label={scanTarget === 'orderId' ? 'Scan Order ID' : 'Scan AWB'}
+      />
 
       {/* Navbar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -296,11 +405,6 @@ export default function ReturnsPage() {
       <main className="max-w-2xl mx-auto px-4 py-5">
         <div className="bg-white rounded-2xl border-2 border-gray-200 p-4 space-y-4">
           
-          {/* Return ID display */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
-            <span className="text-xs font-semibold text-blue-700">Return ID: {returnId}</span>
-          </div>
-
           {/* Location */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Received at Location</label>
@@ -317,25 +421,41 @@ export default function ReturnsPage() {
           {/* Order ID (optional) */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Order ID <span className="text-xs text-gray-400">(optional)</span></label>
-            <input
-              type="text"
-              value={orderId}
-              onChange={e => setOrderId(e.target.value)}
-              placeholder="e.g., ORD-12345"
-              className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-700 outline-none focus:border-blue-400 transition-colors"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={orderId}
+                onChange={e => setOrderId(e.target.value)}
+                placeholder="e.g., ORD-12345"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-700 outline-none focus:border-blue-400 transition-colors"
+              />
+              <button type="button" onClick={() => openScanner('orderId')} className="flex-shrink-0 px-3 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* AWB Number */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">AWB / Tracking Number</label>
-            <input
-              type="text"
-              value={awbNumber}
-              onChange={e => setAwbNumber(e.target.value)}
-              placeholder="e.g., DEL123456789"
-              className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-700 outline-none focus:border-blue-400 transition-colors"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={awbNumber}
+                onChange={e => setAwbNumber(e.target.value)}
+                placeholder="e.g., DEL123456789"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-700 outline-none focus:border-blue-400 transition-colors"
+              />
+              <button type="button" onClick={() => openScanner('awb')} className="flex-shrink-0 px-3 py-2.5 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* SKU rows */}

@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"app/dashboard/page.js -> @/lib/auth\":{\"id\":\"app/dashboard/page.js -> @/lib/auth\",\"files\":[]},\"app/returns/page.js -> @zxing/library\":{\"id\":\"app/returns/page.js -> @zxing/library\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_zxing_library_esm_index_js.js\"]}}"
