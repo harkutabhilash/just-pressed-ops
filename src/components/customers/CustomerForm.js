@@ -486,7 +486,7 @@ export default function CustomerForm({ mode = 'new', initialData = {}, onSave, o
                 Cancel
               </button>
               <button
-                onClick={() => router.push(`/customers/edit/${duplicateCustomer.customer_id}`)}
+                onClick={() => router.push(`/customers/view/${duplicateCustomer.customer_id}`)}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 View Customer
