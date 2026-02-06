@@ -1,7 +1,7 @@
 {
   "/customers/page": "app/customers/page.js",
-  "/customers/edit/[id]/page": "app/customers/edit/[id]/page.js",
   "/customers/view/[id]/page": "app/customers/view/[id]/page.js",
-  "/customers/new/page": "app/customers/new/page.js",
-  "/stock-movement/page": "app/stock-movement/page.js"
+  "/stock-movement/page": "app/stock-movement/page.js",
+  "/customers/edit/[id]/page": "app/customers/edit/[id]/page.js",
+  "/customers/new/page": "app/customers/new/page.js"
 }

@@ -61,7 +61,7 @@ export default function CustomersPage() {
         .select('*')
         .eq('is_deleted', false)
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
+        .order('customer_name', { ascending: true })
 
       // Apply search filter
       if (query.trim()) {
@@ -204,7 +204,7 @@ export default function CustomersPage() {
   }
 
   const copyCustomerDetails = (customer, e) => {
-    e.stopPropagation() // Prevent card click navigation
+    // e.stopPropagation() // Prevent card click navigation
 
     const mapUrl = getMapUrl(customer)
     const details = `Name: ${customer.customer_name}
@@ -315,10 +315,15 @@ ${customer.city || ''}${customer.state ? `, ${customer.state}` : ''}${customer.p
               >
                 {/* Copy Button */}
                 <button
-                  onClick={(e) => copyCustomerDetails(customer, e)}
-                  className="absolute top-3 right-3 text-gray-400 hover:text-green-600 transition-colors"
-                  title="Copy details"
+                onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    copyCustomerDetails(customer)
+                }}
+                className="absolute top-3 right-3 text-gray-400 hover:text-green-600 transition-colors"
+                title="Copy details"
                 >
+
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
